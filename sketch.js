@@ -8,17 +8,20 @@ const TRAIL_FADE_RATE = 5 // Trail fade rate
 const GRAIN_NOISE_SIZE = 100 // Size of noise texture
 let noiseTexture // For grainy effect
 const lineSpace = 40
+let showNinguno = false; // Flag to show "Ninguno"
+let y = 0;          // Initial Y position
+let velocity = .5;   // Initial velocity
+let acceleration = 0.2; // Acceleration value
 
 function setup() {
     // Create the canvas
     createCanvas(windowWidth, windowHeight)
-    background(0) // Black background
+    background(0)
 
-    // Create the input HTML element
+    textFont('roc-grotesk-condensed') 
     input = createInput()
-    input.position(20, 20) // Position of the input on the page
-
-    // Detect when the user presses "Enter"
+    input.position(20, 20) 
+    
     input.changed(addWord)
 
     // Generate noise texture for subtle grainy effect
@@ -31,49 +34,69 @@ function setup() {
 }
 
 function draw() {
-    background(0, 25)
-    drawGrain()
+    // Draw the falling "Ninguno" if the flag is set
+    if (showNinguno) {
+        textSize(240)
+        background(255)
+        fill(0)
 
-    fill(255)
-    textSize(40) 
+        // Draw the text "Ninguno" with acceleration
+        textAlign(CENTER, CENTER)
+        text('Ninguno', width / 2, y)
 
-    for (let i = 0; i < words.length; i++) {
-        text(words[i], 20, 100 + i * lineSpace) // Draw the word
-    }
+        // Update the velocity and apply the acceleration
+        velocity += acceleration
+        y += velocity
 
-    // Draw all the moving letters
-    for (let i = fallingLetters.length - 1; i >= 0; i--) {
-        let letterData = fallingLetters[i]
-
-        // Draw the current letter
-        fill(255) // White
-        text(letterData.letter, letterData.x, letterData.y) // Draw the letter
-
-        // Save the current position for the trail
-        trails.push({ letter: letterData.letter, x: letterData.x, y: letterData.y, alpha: 255 }) // Store initial alpha at 255
-
-        // Update the X position to move right
-        letterData.x += letterData.speed
-        letterData.speed += letterData.acceleration // Increase speed due to acceleration
-
-        // Restart the letter if it goes off-screen
-        if (letterData.x > width) {
-            fallingLetters.splice(i, 1) // Remove letter if it goes off-screen
+        // Reset when the text goes off the screen
+        if (y > height) {
+            y = 0 // Reset Y position to the top
+            velocity = 1 // Reset the velocity
         }
+    } else {
+      background(0, 25)
+
+      for (let i = 0; i < words.length; i++) {
+          text(words[i], 20, 100 + i * lineSpace) // Draw the word
+      }
+      drawGrain()
+      fill(255)
+      textSize(40)
+      // Draw all the moving letters
+      for (let i = fallingLetters.length - 1; i >= 0; i--) {
+          let letterData = fallingLetters[i]
+  
+          // Draw the current letter
+          fill(255) // White
+          text(letterData.letter, letterData.x, letterData.y) // Draw the letter
+  
+          // Save the current position for the trail
+          trails.push({ letter: letterData.letter, x: letterData.x, y: letterData.y, alpha: 255 }) // Store initial alpha at 255
+  
+          // Update the X position to move right
+          letterData.x += letterData.speed
+          letterData.speed += letterData.acceleration // Increase speed due to acceleration
+  
+          // Restart the letter if it goes off-screen
+          if (letterData.x > width) {
+              fallingLetters.splice(i, 1) // Remove letter if it goes off-screen
+          }
+      }
+  
+      // Limit the number of moving letters
+      if (fallingLetters.length > MAX_FALLING_LETTERS) {
+          fallingLetters.splice(0, fallingLetters.length - MAX_FALLING_LETTERS) // Keep only the most recent letters
+      }
+  
+      // Handle letter movement based on assigned delay
+      for (let i = 0; i < dropDelays.length; i++) {
+          if (millis() - dropDelays[i].lastDropTime > dropDelays[i].delay) {
+              dropLetters(i) // Move letters of the corresponding word
+              dropDelays[i].lastDropTime = millis() // Update the last drop time
+          }
+      }
     }
 
-    // Limit the number of moving letters
-    if (fallingLetters.length > MAX_FALLING_LETTERS) {
-        fallingLetters.splice(0, fallingLetters.length - MAX_FALLING_LETTERS) // Keep only the most recent letters
-    }
-
-    // Handle letter movement based on assigned delay
-    for (let i = 0; i < dropDelays.length; i++) {
-        if (millis() - dropDelays[i].lastDropTime > dropDelays[i].delay) {
-            dropLetters(i) // Move letters of the corresponding word
-            dropDelays[i].lastDropTime = millis() // Update the last drop time
-        }
-    }
 }
 
 // Function to add the word to the array when "Enter" is pressed
@@ -112,6 +135,25 @@ function drawGrain() {
         for (let j = 0; j < width / GRAIN_NOISE_SIZE + 1; j++) {
             image(noiseTexture, j * GRAIN_NOISE_SIZE, i * GRAIN_NOISE_SIZE)
         }
+    }
+}
+
+// Function to reset the canvas
+function resetCanvas() {
+  words = []; 
+  fallingLetters = []; 
+  trails = [];
+  dropDelays = []; 
+  input.remove()
+  showNinguno = true;
+}
+
+function keyPressed() {
+    if (keyCode === SHIFT) {
+        resetCanvas()
+    }
+    else if (keyCode === 49) {
+        showNinguno = false
     }
 }
 
